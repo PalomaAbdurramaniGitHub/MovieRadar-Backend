@@ -158,6 +158,26 @@ const updateUser = async (req, res) => {
     }
 };
 
+const sendEmailEmailChange = async (userEmail, userName) => {
+    try {
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: userEmail,
+            subject: "Your MovieRadar Email Address Has Been Changed",
+            text: `Hello ${userName},
+            \n\nWe wanted to let you know that your email address associated with MovieRadar has been successfully updated. If you made this change, no further action is required.
+            \nIf you did not request this change, please contact us immediately for assistance.
+            \nYour security is important to us, and we are here to help if you have any questions or concerns.
+            \n\nBest regards,
+            \nThe MovieRadar Team 🎥🍿`
+        };
+        await transporter.sendMail(mailOptions);
+        console.log("Email change notification sent successfully.");
+    } catch (error) {
+        console.error('Error sending email change notification:', error);
+    }
+};
+
 const updateUserEmail = async (req, res) => {
     try {
         const existingUser = await User.findById(req.user._id);
@@ -175,6 +195,7 @@ const updateUserEmail = async (req, res) => {
             );
     
             if (updatedUser) {
+                await sendEmailEmailChange(req.user.email, req.user.name);
                 return res.status(StatusCodes.OK).json(updatedUser);
             } else {
                 return res.status(StatusCodes.NOT_FOUND).json({ message: "User not updated." });
@@ -187,6 +208,27 @@ const updateUserEmail = async (req, res) => {
         res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: "The server encountered an error and could not complete your request." });
     }
 };
+
+const sendEmailPasswordChange = async (userEmail, userName) => {
+    try {
+        const mailOptions = {
+            from: process.env.EMAIL,
+            to: userEmail,
+            subject: "Your MovieRadar Credentials Have Been Changed",
+            text: `Hello ${userName},
+            \n\nWe wanted to let you know that your credentials have been successfully updated. If you made these changes, no further action is required.
+            \nIf you did not request these changes, please contact us immediately for assistance.
+            \nYour security is important to us, and we are here to help if you have any questions or concerns.
+            \n\nBest regards,
+            \nThe MovieRadar Team 🎥🍿`
+        };
+        await transporter.sendMail(mailOptions);
+        console.log("Password changed email sent successfully.");
+    } catch (error) {
+        console.error('Error sending password changed email:', error);
+    }
+};
+
 const updateUserPassword = async (req, res) => {
     try {
         const existingUser = await User.findById(req.user._id);
@@ -218,6 +260,7 @@ const updateUserPassword = async (req, res) => {
         );
 
         if (updatedUser) {
+            await sendEmailPasswordChange(req.user.email, req.user.name);
             return res.status(StatusCodes.OK).json(updatedUser);
         } else {
             return res.status(StatusCodes.NOT_FOUND).json({ message: "User not updated." });

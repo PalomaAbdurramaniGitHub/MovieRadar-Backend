@@ -63,7 +63,6 @@ async function generateSuggestions(req, res) {
             let relevanceScore = 0;
             let matchedPreferences = [];
 
-            // Check and match preferences
             const checkAndAddMatch = (field, preferenceArray) => {
                 const movieFieldArray = Array.isArray(movie[field]) ? movie[field] : (movie[field] || '').split(',').map(item => item.trim());
                 const matches = movieFieldArray.filter(item => preferenceArray.includes(item));
@@ -87,11 +86,9 @@ async function generateSuggestions(req, res) {
             const ageRestriction = movie.ageRestriction || 0;
             if (age < ageRestriction) return null;
 
-            // Ensure the movie is not already in the set
             if (movieSet.has(movie._id.toString())) return null;
             movieSet.add(movie._id.toString());
 
-            // Build suggestion data
             const suggestedBecause = matchedPreferences.length > 0
                 ? `Suggested because your preferences contain: ${matchedPreferences.join(", ")}`
                 : "Suggested randomly";
@@ -112,7 +109,6 @@ async function generateSuggestions(req, res) {
             });
         }).filter(Boolean);
 
-        // Insert suggestions into the database
         if (suggestions.length > 0) {
             await Suggestion.insertMany(suggestions);
             console.log("Suggestions inserted into the database.");
