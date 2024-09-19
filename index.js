@@ -15,6 +15,7 @@ import getActorMovies from "./services/getActorMovies.js";
 import getMovieReviews from "./services/getMovieReviews.js";
 import getReviewAuthor from "./services/getReviewAuthor.js";
 import authRoutes from "./routes/auth.js";
+import contactRoute from "./routes/contactRoute.js";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from 'url';
@@ -50,6 +51,8 @@ app.get('/api/actors/:actorId/movies', getActorMovies);
 
 app.get('/api/movies/:movieId/reviews', getMovieReviews);
 app.get('/api/users/:reviewId/author', getReviewAuthor);
+
+app.use("/api/contact", contactRoute);
 
 // link to port
 const port = process.env.PORT;

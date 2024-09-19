@@ -54,8 +54,11 @@ async function generateSuggestions(req, res) {
             movies = await Movie.aggregate([{ $sample: { size: 20 } }]).exec();
         }
 
+        // Filter out movies that have already been suggested
         movies = movies.filter(movie => !suggestedMovieIDs.has(movie._id.toString()));
 
+        // Build suggestions ensuring no duplicates
+        const movieSet = new Set();
         const suggestions = movies.map(movie => {
             let relevanceScore = 0;
             let matchedPreferences = [];
@@ -84,6 +87,10 @@ async function generateSuggestions(req, res) {
             const ageRestriction = movie.ageRestriction || 0;
             if (age < ageRestriction) return null;
 
+            // Ensure the movie is not already in the set
+            if (movieSet.has(movie._id.toString())) return null;
+            movieSet.add(movie._id.toString());
+
             // Build suggestion data
             const suggestedBecause = matchedPreferences.length > 0
                 ? `Suggested because your preferences contain: ${matchedPreferences.join(", ")}`
@@ -109,8 +116,6 @@ async function generateSuggestions(req, res) {
         if (suggestions.length > 0) {
             await Suggestion.insertMany(suggestions);
             console.log("Suggestions inserted into the database.");
-        } else {
-            console.log("No suggestions to insert.");
         }
 
         res.status(StatusCodes.OK).json({ message: "Suggestions generated successfully." });

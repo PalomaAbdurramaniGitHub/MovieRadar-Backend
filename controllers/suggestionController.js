@@ -19,7 +19,6 @@ const getSuggestionById = async (req, res) => {
             .populate('movieId', 'poster title year duration rating')
             .exec();
 
-        console.log(suggestions);
         res.status(StatusCodes.OK).json(suggestions);
     } catch (error) {
         console.error('Error fetching suggestions:', error);

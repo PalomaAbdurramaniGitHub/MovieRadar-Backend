@@ -19,7 +19,7 @@ const Login = async (req, res) => {
         if(!isMatch){
             return res.status(StatusCode.UNAUTHORIZED).json({ message: "Invalid credentials!" });
         }
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+        const token = jwt.sign({ id: user._id, name: user.name, email: user.email  }, process.env.JWT_SECRET);
 
         return res.status(StatusCode.OK).json({token, email});
     }catch(error){
