@@ -3,6 +3,7 @@ import {
     getAllUsers,
     getUserById,
     signup,
+    verifyCode,
     updateUser,
     updateUserEmail,
     updateUserPassword,
@@ -18,6 +19,7 @@ const router = express.Router();
 router.get("/", authenticateToken, authorizeAdmin(), getAllUsers);
 router.get("/me", authenticateToken, getUserById);
 router.post("/signup", checkAgeForRegistration, signup);
+router.post("/verify-code", verifyCode);
 router.put("/me", authenticateToken, upload.single('photo'), updateUser);
 router.put("/changeEmail", authenticateToken, updateUserEmail);
 router.put("/changePassword", authenticateToken, updateUserPassword);

@@ -22,7 +22,7 @@ const authenticateToken = async (req, res, next) => {
 
         next();
     } catch (error) {
-        return res.status(StatusCodes.FORBIDDEN).json({ message: "Invalid or expired token." });
+        return res.status(StatusCodes.UNAUTHORIZED).json({ message: "Invalid or expired token." });
     }
 };
 

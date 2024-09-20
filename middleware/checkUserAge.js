@@ -15,7 +15,6 @@ function checkAgeForRegistration(req, res, next) {
 
     const age = today.diff(birthdate, 'years');
     if (age < 8) {
-        console.log(age);
         return res.status(StatusCodes.BAD_REQUEST).json("You should be older than 8 years old to create an account!");
     }
 

@@ -7,9 +7,11 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from 'url';
 import nodemailer from "nodemailer";
+import crypto from "crypto";
 
 dotenv.config();
 
+// Email transporter setup
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -18,35 +20,31 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-// Send email
-const sendEmail = async (userEmail, userName) => {
+const sendVerificationEmail = async (userEmail, userName, verificationCode) => {
     try {
         const mailOptions = {
             from: process.env.EMAIL,
             to: userEmail,
-            subject: "Welcome to MovieRadar",
+            subject: "MovieRadar - Verification Code",
             text: `Hello ${userName},
-            \n\nWelcome to MovieRadar! We're thrilled to have you join our community of movie enthusiasts. Get ready to explore a world of amazing films tailored just for you.
-            \nIf you ever need any help or have questions, we're here for you. Dive in and discover your next favorite movie!
-            \n\nHappy Watching,
+            \n\nPlease use the following verification code to complete your registration on MovieRadar: ${verificationCode}
+            \n\nThis code will expire in 10 minutes.
+            \n\nThank you for joining MovieRadar!
             \nThe MovieRadar Team 🎥🍿`
         };
         await transporter.sendMail(mailOptions);
-        console.log("Welcome email sent successfully.");
+        console.log("Verification email sent successfully.");
     } catch (error) {
-        console.error('Error sending welcome email:', error);
+        console.error('Error sending verification email:', error);
     }
 };
+const generateVerificationCode = () => {
+    return crypto.randomInt(100000, 999999).toString();
+};
 
-// POST - signup (create a new user)
+// POST - signup (create a new user and send verification code)
 const signup = async (req, res) => {
-    const { 
-        name, 
-        email, 
-        password, 
-        confirmPassword,
-        birthdate
-    } = req.body;
+    const { name, email, password, confirmPassword, birthdate } = req.body;
 
     try {
         if (!process.env.EMAIL || !process.env.PASSWORD) {
@@ -59,29 +57,63 @@ const signup = async (req, res) => {
             return res.status(StatusCodes.CONFLICT).json({ message: "User already exists!" });
         }
 
-        if(password === confirmPassword){
-             // Create a new user
-            const user = new User({
-                name,
-                email,
-                password: password,
-                birthdate,
-                keepMeLogged: false,
-                createdAt: new Date(),
-                lastModified: new Date(),
-                lastLogIn: new Date(),
-                passwordChangedAt: null
-            });
+        if (password !== confirmPassword) {
+            return res.status(StatusCodes.BAD_REQUEST).json({ message: "Passwords do not match." });
+        }
 
-            await user.save();
-            await sendEmail(email, name);
-            res.status(StatusCodes.CREATED).json({ message: 'Sign-in successful, welcome email sent' });
-        } else {
-            return res.status(StatusCodes.BAD_REQUEST).json({message: "The passwords aren't correct."});
-        } 
+        const verificationCode = generateVerificationCode();
+
+        const user = new User({
+            name,
+            email,
+            password: password,
+            birthdate,
+            isVerified: false,
+            verificationCode,
+            keepMeLogged: false,
+            createdAt: new Date(),
+            lastModified: new Date(),
+            lastLogIn: new Date(),
+            passwordChangedAt: null
+        });
+
+        await user.save();
+        await sendVerificationEmail(email, name, verificationCode);
+
+        res.status(StatusCodes.CREATED).json({
+            message: 'Sign-up successful, please check your email for the verification code.'
+        });
     } catch (error) {
         console.error("An error occurred: ", error.message);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: "The server encountered an error and could not complete your request." });
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            message: "The server encountered an error and could not complete your request."
+        });
+    }
+};
+
+// POST - verify code (verify the user's account)
+const verifyCode = async (req, res) => {
+    const { email, verificationCode } = req.body;
+
+    try {
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(StatusCodes.NOT_FOUND).json({ message: "User not found." });
+        }
+
+        if (user.verificationCode === verificationCode) {
+            user.isVerified = true;
+            user.verificationCode = null;
+            await user.save();
+
+            res.status(StatusCodes.OK).json({ message: "Your account has been verified successfully." });
+        } else {
+            res.status(StatusCodes.BAD_REQUEST).json({ message: "Invalid verification code." });
+        }
+    } catch (error) {
+        console.error("Error verifying code: ", error.message);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: "An error occurred during verification." });
     }
 };
 
@@ -304,4 +336,4 @@ const deleteUser = async (req, res) => {
 };
 
 //Export all functions
-export {getAllUsers, getUserById, signup, updateUser, updateUserEmail, updateUserPassword, deleteUser};
+export {getAllUsers, getUserById, signup, verifyCode, updateUser, updateUserEmail, updateUserPassword, deleteUser};

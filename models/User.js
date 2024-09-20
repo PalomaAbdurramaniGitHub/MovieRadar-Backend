@@ -74,6 +74,8 @@ const userSchema = new mongoose.Schema({
         }
     },
     isAdmin: {type: Boolean},
+    isVerified: { type: Boolean, default: false },
+    verificationCode: String,
     keepMeLogged: {type: Boolean},
     createdAt: {type: Date, default: Date.now},
     lastModified: {type: Date, default: Date.now},
