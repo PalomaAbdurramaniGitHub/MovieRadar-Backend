@@ -5,7 +5,8 @@ import {
     signup,
     verifyCode,
     updateUser,
-    updateUserEmail,
+    requestEmailUpdate,
+    verifyEmailUpdateCode,
     updateUserPassword,
     deleteUser,
 } from "../controllers/userController.js";
@@ -21,7 +22,8 @@ router.get("/me", authenticateToken, getUserById);
 router.post("/signup", checkAgeForRegistration, signup);
 router.post("/verify-code", verifyCode);
 router.put("/me", authenticateToken, upload.single('photo'), updateUser);
-router.put("/changeEmail", authenticateToken, updateUserEmail);
+router.put("/changeEmail", authenticateToken, requestEmailUpdate);
+router.put("/verify-email-code", authenticateToken, verifyEmailUpdateCode);
 router.put("/changePassword", authenticateToken, updateUserPassword);
 router.delete("/me", authenticateToken, deleteUser);
 

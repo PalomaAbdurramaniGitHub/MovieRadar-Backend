@@ -210,34 +210,76 @@ const sendEmailEmailChange = async (userEmail, userName) => {
     }
 };
 
-const updateUserEmail = async (req, res) => {
+const requestEmailUpdate = async (req, res) => {
+    const { password, newEmail } = req.body;
+
     try {
-        const existingUser = await User.findById(req.user._id);
-        const password = (req.body.password);
-        const email = (req.body.email);
-        if (!existingUser) {
-            return res.status(StatusCodes.NOT_FOUND).json({ message: "User not found" });
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(StatusCodes.NOT_FOUND).json({ message: "User not found." });
         }
 
-        const isMatch = await bcrypt.compare(password, existingUser.password);
-        if(isMatch){
-            const updatedUser = await User.findByIdAndUpdate(
-                req.user._id,
-                { email, lastModified: Date.now() }
-            );
-    
-            if (updatedUser) {
-                await sendEmailEmailChange(req.user.email, req.user.name);
-                return res.status(StatusCodes.OK).json(updatedUser);
-            } else {
-                return res.status(StatusCodes.NOT_FOUND).json({ message: "User not updated." });
-            }
-        } else {
-            return res.status(StatusCodes.NOT_FOUND).json({ message: "Incorrect password" });
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(StatusCodes.UNAUTHORIZED).json({ message: "Incorrect password." });
         }
+
+        const existingUser = await User.findOne({ email: newEmail });
+        if (existingUser) {
+            return res.status(StatusCodes.CONFLICT).json({ message: "Email is already in use." });
+        }
+
+        const verificationCode = generateVerificationCode();
+        user.emailChangeCode = verificationCode;
+        user.emailChangeCodeExpires = Date.now() + 10 * 60 * 1000;
+        user.newEmail = newEmail;
+
+        await user.save();
+        await sendVerificationEmail(newEmail, user.name, verificationCode);
+
+        res.status(StatusCodes.OK).json({
+            message: "Verification code sent to the new email address. Please enter the code to confirm the change."
+        });
     } catch (error) {
         console.error("An error occurred: ", error.message);
-        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ message: "The server encountered an error and could not complete your request." });
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            message: "The server encountered an error and could not complete your request."
+        });
+    }
+};
+
+const verifyEmailUpdateCode = async (req, res) => {
+    const { verificationCode } = req.body;
+
+    try {
+        const user = await User.findById(req.user._id);
+
+        if (!user) {
+            return res.status(StatusCodes.NOT_FOUND).json({ message: "User not found." });
+        }
+
+        if (verificationCode !== user.emailChangeCode) {
+            return res.status(StatusCodes.BAD_REQUEST).json({ message: "Invalid verification code." });
+        }
+
+        if (user.emailChangeCodeExpires < Date.now()) {
+            return res.status(StatusCodes.BAD_REQUEST).json({ message: "Verification code has expired." });
+        }
+
+        user.email = user.newEmail;
+        user.newEmail = undefined;
+        user.emailChangeCode = undefined;
+        user.emailChangeCodeExpires = undefined;
+        user.lastModified = Date.now();
+
+        await user.save();
+        sendEmailEmailChange(user.email, user.name);
+        res.status(StatusCodes.OK).json({ message: "Email updated successfully." });
+    } catch (error) {
+        console.error("An error occurred: ", error.message);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({
+            message: "The server encountered an error and could not complete your request."
+        });
     }
 };
 
@@ -336,4 +378,4 @@ const deleteUser = async (req, res) => {
 };
 
 //Export all functions
-export {getAllUsers, getUserById, signup, verifyCode, updateUser, updateUserEmail, updateUserPassword, deleteUser};
+export {getAllUsers, getUserById, signup, verifyCode, updateUser, requestEmailUpdate, verifyEmailUpdateCode, updateUserPassword, deleteUser};

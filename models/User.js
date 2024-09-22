@@ -15,6 +15,16 @@ const userSchema = new mongoose.Schema({
             message: props => `${props.value} is not a valid email address.`
         }
     },
+    newEmail: {
+        type: String,
+        unique: true,
+        validate: {
+            validator: function(value){
+                return /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/.test(value);
+            },
+            message: props => `${props.value} is not a valid email address.`
+        }
+    },
     password: {
         type: String, 
         required: true,
@@ -76,6 +86,8 @@ const userSchema = new mongoose.Schema({
     isAdmin: {type: Boolean},
     isVerified: { type: Boolean, default: false },
     verificationCode: String,
+    emailChangeCode: { type: String, default: null },
+    emailChangeCodeExpires: { type: Date, default: null },
     keepMeLogged: {type: Boolean},
     createdAt: {type: Date, default: Date.now},
     lastModified: {type: Date, default: Date.now},
